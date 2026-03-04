@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARG Navigator</title>
+    <title>ARG Navigator - Path Finder</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <style>
         :root {
             --primary: #2c3e50;
@@ -36,9 +37,9 @@
         .btn-sub { background: #7f8c8d; font-size: 0.75em; margin: 2px; }
         .delete-btn { background: var(--danger); font-size: 0.8em; }
 
-        /* 検索ボックスのスタイル */
-        .search-container { margin-top: 20px; display: flex; align-items: center; gap: 10px; }
-        #searchBox { margin-bottom: 0; flex-grow: 1; border: 2px solid var(--accent); }
+        /* ダイアグラム表示エリア */
+        #diagramContainer { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-top: 20px; overflow-x: auto; min-height: 200px; }
+        .diagram-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 
         table { width: 100%; border-collapse: collapse; margin-top: 20px; background: var(--white); box-shadow: 0 2px 10px rgba(0,0,0,0.05); table-layout: fixed; }
         th, td { border: 1px solid #eee; padding: 12px; text-align: left; vertical-align: top; }
@@ -48,9 +49,10 @@
         .editable-cell:hover { background: var(--edit-bg); cursor: text; }
         .editable-cell:focus { background: #fff; box-shadow: 0 0 0 2px var(--accent); }
 
+        .search-container { margin: 20px 0; display: flex; align-items: center; gap: 10px; }
+        #searchBox { margin-bottom: 0; flex-grow: 1; border: 2px solid var(--accent); }
+
         a { color: var(--accent); text-decoration: none; font-size: 0.9em; font-weight: bold; }
-        a:hover { text-decoration: underline; }
-        
         .backup-section { margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2); }
         #fileInput { display: none; }
     </style>
@@ -61,7 +63,6 @@
     <h3>サイト一覧</h3>
     <input type="text" id="newSiteName" placeholder="サイト名を入力...">
     <button onclick="addSite()" style="width:100%">サイト追加</button>
-    
     <div id="siteList"></div>
 
     <div class="backup-section">
@@ -81,26 +82,36 @@
         
         <div style="background: var(--white); padding: 20px; border-radius: 8px; border: 1px solid #ddd; margin-top: 10px;">
             <h4>新しいページを登録</h4>
-            <div style="display: grid; grid-template-columns: 80px 1fr 1fr; gap: 10px;">
-                <input type="number" id="pageNum" placeholder="No.">
+            <div style="display: grid; grid-template-columns: 80px 80px 1fr 1fr; gap: 10px;">
+                <input type="number" id="pageNum" placeholder="ID">
+                <input type="number" id="fromNum" placeholder="From(ID)">
                 <input type="text" id="pageTitle" placeholder="タイトル">
                 <input type="text" id="pageUrl" placeholder="URLを入力">
             </div>
-            <textarea id="pageDesc" placeholder="概要・メモ（手がかりなど）"></textarea>
+            <textarea id="pageDesc" placeholder="概要・メモ（手がかり、遷移のきっかけなど）"></textarea>
             <button onclick="addPage()" style="width: 100%; margin: 0;">追加</button>
         </div>
 
+        <div class="diagram-header">
+            <h3 style="margin: 20px 0 0 0; font-size: 1em;">遷移ルート相関図</h3>
+            <button class="btn-sub" onclick="drawDiagram()">図を更新</button>
+        </div>
+        <div id="diagramContainer">
+            <div id="mermaidGraph" class="mermaid">graph TD;</div>
+        </div>
+
         <div class="search-container">
-            <span style="font-size: 0.8em; font-weight: bold;">ページを絞り込む:</span>
+            <span style="font-size: 0.8em; font-weight: bold;">絞り込み:</span>
             <input type="text" id="searchBox" placeholder="キーワードを入力..." oninput="renderPages()">
         </div>
 
         <table>
             <thead>
                 <tr>
-                    <th style="width: 50px;">No.</th>
+                    <th style="width: 50px;">ID</th>
+                    <th style="width: 60px;">From</th>
                     <th style="width: 20%;">タイトル</th>
-                    <th style="width: 25%;">URL</th>
+                    <th style="width: 20%;">URL</th>
                     <th>概要/メモ</th>
                     <th style="width: 60px;">操作</th>
                 </tr>
@@ -119,54 +130,54 @@
 </div>
 
 <script>
-    let data = JSON.parse(localStorage.getItem('argDataV_SEARCH')) || {};
+    mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'neutral' });
+
+    let data = JSON.parse(localStorage.getItem('argDataV_PATH')) || {};
     let currentSite = null;
 
     function save() {
-        localStorage.setItem('argDataV_SEARCH', JSON.stringify(data));
+        localStorage.setItem('argDataV_PATH', JSON.stringify(data));
         renderSiteList();
     }
 
-    function downloadJSON(obj, filename) {
-        const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(url);
-    }
+    /* 図解の生成・描画 */
+    async function drawDiagram() {
+        const container = document.getElementById('mermaidGraph');
+        if (!currentSite || !data[currentSite] || data[currentSite].length === 0) {
+            container.innerHTML = 'データがありません。';
+            return;
+        }
 
-    function exportAll() {
-        downloadJSON(data, `arg_all_backup.json`);
-    }
+        let graphDefinition = 'graph TD\n';
+        let hasLinks = false;
 
-    function exportCurrentSite() {
-        if (!currentSite) return;
-        const siteData = { [currentSite]: data[currentSite] };
-        downloadJSON(siteData, `arg_site_${currentSite}.json`);
-    }
-
-    function importData(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const imported = JSON.parse(e.target.result);
-                if (confirm('データを読み込みますか？同名のサイトは上書きされます。')) {
-                    data = { ...data, ...imported };
-                    save();
-                    alert('読み込みが完了しました。');
-                }
-            } catch (err) {
-                alert('エラー: 正しいファイル形式ではありません。');
+        data[currentSite].forEach(page => {
+            // ノードの定義
+            const cleanTitle = (page.title || '無題').replace(/[()]/g, '');
+            graphDefinition += `  P${page.num}["ID:${page.num}<br/>${cleanTitle}"]\n`;
+            
+            // エッジ（遷移）の定義
+            if (page.from && page.from !== '') {
+                graphDefinition += `  P${page.from} --> P${page.num}\n`;
+                hasLinks = true;
             }
-        };
-        reader.readAsText(file);
+        });
+
+        if (!hasLinks) {
+            container.innerHTML = '遷移元(From)が設定されているページがありません。';
+            return;
+        }
+
+        try {
+            container.removeAttribute('data-processed');
+            container.innerHTML = graphDefinition;
+            await mermaid.run({ nodes: [container] });
+        } catch (e) {
+            container.innerHTML = '図の生成に失敗しました。IDの整合性を確認してください。';
+        }
     }
 
+    /* 基本ロジック */
     function addSite() {
         const name = document.getElementById('newSiteName').value.trim();
         if (name && !data[name]) {
@@ -191,41 +202,43 @@
 
     function selectSite(name) {
         currentSite = name;
-        document.getElementById('searchBox').value = ''; // サイト切り替え時に検索クリア
         document.getElementById('viewArea').style.display = 'block';
         document.getElementById('emptyMessage').style.display = 'none';
         document.getElementById('currentSiteTitle').textContent = name;
         renderSiteList();
         renderPages();
+        drawDiagram();
     }
 
     function addPage() {
         const numInput = document.getElementById('pageNum').value;
+        const fromInput = document.getElementById('fromNum').value;
         const url = document.getElementById('pageUrl').value.trim();
         
         if (!currentSite || !numInput || !url) {
-            alert('No.とURLは必ず入力してください。');
+            alert('IDとURLは必須です。');
             return;
         }
 
         const num = parseInt(numInput);
-        const isDuplicate = data[currentSite].some(page => page.num === num);
-        if (isDuplicate) {
-            alert('そのNo.は既に登録されています。');
+        if (data[currentSite].some(p => p.num === num)) {
+            alert('そのIDは既に存在します。');
             return;
         }
 
         data[currentSite].push({ 
             num: num, 
+            from: fromInput ? parseInt(fromInput) : '',
             title: document.getElementById('pageTitle').value.trim() || '(無題)', 
             url: url, 
             desc: document.getElementById('pageDesc').value.trim() || '-' 
         });
         
         data[currentSite].sort((a, b) => a.num - b.num);
-        ['pageNum', 'pageTitle', 'pageUrl', 'pageDesc'].forEach(id => document.getElementById(id).value = '');
+        ['pageNum', 'fromNum', 'pageTitle', 'pageUrl', 'pageDesc'].forEach(id => document.getElementById(id).value = '');
         save();
         renderPages();
+        drawDiagram();
     }
 
     function renderPages() {
@@ -236,20 +249,16 @@
         const searchTerm = document.getElementById('searchBox').value.toLowerCase();
 
         data[currentSite].forEach((page, index) => {
-            // 検索ワードが含まれているかチェック
-            const match = page.title.toLowerCase().includes(searchTerm) || 
-                          page.desc.toLowerCase().includes(searchTerm) ||
-                          page.num.toString().includes(searchTerm);
-            
-            if (!match) return;
+            if (searchTerm && !page.title.toLowerCase().includes(searchTerm) && !page.desc.toLowerCase().includes(searchTerm)) return;
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td style="color: var(--accent); font-weight: bold;">${page.num}</td>
+                <td class="editable-cell" contenteditable="true" onblur="updateData(${index}, 'from', this.innerText)">${page.from || ''}</td>
                 <td><div class="editable-cell" contenteditable="true" onblur="updateData(${index}, 'title', this.innerText)">${page.title}</div></td>
-                <td><a href="${page.url}" target="_blank">ページを開く</a></td>
+                <td><a href="${page.url}" target="_blank">開く</a></td>
                 <td><div class="editable-cell" contenteditable="true" onblur="updateData(${index}, 'desc', this.innerText)">${page.desc}</div></td>
-                <td><button class="delete-btn" style="margin:0; padding:5px 10px;" onclick="deletePage(${index})">削除</button></td>
+                <td><button class="delete-btn" style="margin:0; padding:5px 10px;" onclick="deletePage(${index})">削</button></td>
             `;
             tbody.appendChild(tr);
         });
@@ -257,23 +266,45 @@
 
     function updateData(index, field, value) {
         if (currentSite && data[currentSite][index]) {
-            data[currentSite][index][field] = value.trim();
-            localStorage.setItem('argDataV_SEARCH', JSON.stringify(data));
+            let cleanValue = value.trim();
+            if (field === 'from') cleanValue = cleanValue ? parseInt(cleanValue) : '';
+            data[currentSite][index][field] = cleanValue;
+            localStorage.setItem('argDataV_PATH', JSON.stringify(data));
+            if (field === 'from') drawDiagram();
         }
     }
 
     function deletePage(index) {
-        if(confirm('このページを削除しますか？')) {
+        if(confirm('削除しますか？')) {
             data[currentSite].splice(index, 1);
             save();
             renderPages();
+            drawDiagram();
         }
     }
 
+    /* エクスポート・インポート */
+    function exportAll() { downloadJSON(data, `arg_backup.json`); }
+    function exportCurrentSite() { if(currentSite) downloadJSON({ [currentSite]: data[currentSite] }, `arg_site_${currentSite}.json`); }
+    function downloadJSON(obj, filename) {
+        const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+    }
+    function importData(event) {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                data = { ...data, ...JSON.parse(e.target.result) };
+                save(); alert('完了');
+            } catch { alert('失敗'); }
+        };
+        reader.readAsText(file);
+    }
     function deleteCurrentSite() {
-        if (confirm(currentSite + ' のデータをすべて削除しますか？')) {
-            delete data[currentSite];
-            currentSite = null;
+        if (confirm(currentSite + ' を削除？')) {
+            delete data[currentSite]; currentSite = null;
             document.getElementById('viewArea').style.display = 'none';
             document.getElementById('emptyMessage').style.display = 'block';
             save();
