@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARG Navigator - Fixed Stealth</title>
+    <title>ARG Navigator - Selective Visual</title>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <style>
         :root {
@@ -18,6 +18,7 @@
         }
         body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; }
         
+        /* サイドバー */
         #sidebar { width: 280px; background: var(--primary); color: var(--white); padding: 20px; overflow-y: auto; flex-shrink: 0; }
         #main { flex-grow: 1; padding: 40px; overflow-y: auto; }
         
@@ -56,6 +57,9 @@
         a { color: var(--accent); text-decoration: none; font-size: 0.9em; font-weight: bold; }
         .backup-section { margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2); }
         #fileInput { display: none; }
+        
+        /* チェックボックス用のセンタリング */
+        .center-cell { text-align: center; vertical-align: middle; }
     </style>
 </head>
 <body>
@@ -115,12 +119,13 @@
         <table>
             <thead>
                 <tr>
+                    <th style="width: 40px;" class="center-cell">図</th>
                     <th style="width: 50px;">ID</th>
                     <th style="width: 60px;">From</th>
                     <th style="width: 20%;">タイトル</th>
                     <th style="width: 20%;">URL</th>
                     <th>概要/メモ</th>
-                    <th style="width: 60px;">操作</th>
+                    <th style="width: 40px;">操作</th>
                 </tr>
             </thead>
             <tbody id="pageListBody"></tbody>
@@ -144,18 +149,20 @@
         flowchart: { nodeSpacing: 80, rankSpacing: 80, curve: 'basis' }
     });
 
-    let data = JSON.parse(localStorage.getItem('argDataV_FINAL')) || {};
+    let data = JSON.parse(localStorage.getItem('argDataV_SELECTIVE')) || {};
     let currentSite = null;
     let graphDir = 'TD'; 
 
     function save() {
-        localStorage.setItem('argDataV_FINAL', JSON.stringify(data));
+        localStorage.setItem('argDataV_SELECTIVE', JSON.stringify(data));
         renderSiteList();
     }
 
     function toggleDiagram() {
         const area = document.getElementById('diagramArea');
-        area.style.display = (area.style.display === 'none' || area.style.display === '' ? 'block' : 'none');
+        const isHidden = (area.style.display === 'none' || area.style.display === '');
+        area.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) drawDiagram();
     }
 
     function toggleDirection() {
@@ -165,25 +172,38 @@
 
     async function drawDiagram() {
         const container = document.getElementById('mermaidGraph');
+        const area = document.getElementById('diagramArea');
+        if (area.style.display === 'none' || area.style.display === '') return;
+
         if (!currentSite || !data[currentSite] || data[currentSite].length === 0) {
             container.innerHTML = 'データなし';
             return;
         }
 
         let graphDef = `graph ${graphDir}\n`;
-        let hasLinks = false;
+        let hasContent = false;
+
+        // 表示設定になっているIDのリストを作成
+        const visibleIds = new Set(data[currentSite]
+            .filter(p => p.showInGraph !== false)
+            .map(p => p.num));
 
         data[currentSite].forEach(page => {
+            // チェックが入っていない場合はノードを描画しない
+            if (!visibleIds.has(page.num)) return;
+
             const cleanTitle = (page.title || '無題').replace(/[()]/g, '');
             graphDef += `  P${page.num}["ID:${page.num}<br/>${cleanTitle}"]\n`;
-            if (page.from && page.from !== '') {
+            
+            // 遷移元も表示設定になっている場合のみ線を引く
+            if (page.from && visibleIds.has(parseInt(page.from))) {
                 graphDef += `  P${page.from} --> P${page.num}\n`;
-                hasLinks = true;
             }
+            hasContent = true;
         });
 
-        if (!hasLinks) {
-            container.innerHTML = 'From設定がありません。';
+        if (!hasContent) {
+            container.innerHTML = '表示対象のデータがありません。';
             return;
         }
 
@@ -232,15 +252,18 @@
         const numIn = document.getElementById('pageNum').value;
         const fromIn = document.getElementById('fromNum').value;
         const url = document.getElementById('pageUrl').value.trim();
-        if (!currentSite || !numIn || !url) return alert('IDとURLは必須よ');
+        if (!currentSite || !numIn || !url) return alert('IDとURLは必須です');
 
         const num = parseInt(numIn);
-        if (data[currentSite].some(p => p.num === num)) return alert('IDが重複してるわよ');
+        if (data[currentSite].some(p => p.num === num)) return alert('IDが重複しています');
 
         data[currentSite].push({ 
-            num: num, from: fromIn ? parseInt(fromIn) : '',
+            num: num, 
+            from: fromIn ? parseInt(fromIn) : '',
             title: document.getElementById('pageTitle').value.trim() || '(無題)', 
-            url: url, desc: document.getElementById('pageDesc').value.trim() || '-' 
+            url: url, 
+            desc: document.getElementById('pageDesc').value.trim() || '-',
+            showInGraph: true // 初期状態は表示
         });
         
         data[currentSite].sort((a, b) => a.num - b.num);
@@ -258,15 +281,22 @@
             if (search && !p.title.toLowerCase().includes(search) && !p.desc.toLowerCase().includes(search)) return;
             const tr = document.createElement('tr');
             tr.innerHTML = `
+                <td class="center-cell"><input type="checkbox" ${p.showInGraph !== false ? 'checked' : ''} onchange="updateCheckbox(${i}, this.checked)"></td>
                 <td style="color:var(--accent); font-weight:bold;">${p.num}</td>
                 <td class="editable-cell" contenteditable="true" onblur="updateData(${i}, 'from', this.innerText)">${p.from || ''}</td>
                 <td class="editable-cell" contenteditable="true" onblur="updateData(${i}, 'title', this.innerText)">${p.title}</td>
                 <td><a href="${p.url}" target="_blank">開く</a></td>
                 <td class="editable-cell" contenteditable="true" onblur="updateData(${i}, 'desc', this.innerText)">${p.desc}</td>
-                <td><button class="delete-btn" onclick="deletePage(${i})">削</button></td>
+                <td class="center-cell"><button class="delete-btn" onclick="deletePage(${i})">削</button></td>
             `;
             tbody.appendChild(tr);
         });
+    }
+
+    function updateCheckbox(index, checked) {
+        data[currentSite][index].showInGraph = checked;
+        save();
+        drawDiagram();
     }
 
     function updateData(index, field, value) {
@@ -274,13 +304,13 @@
             let val = value.trim();
             if (field === 'from') val = val ? parseInt(val) : '';
             data[currentSite][index][field] = val;
-            save(); // ここで確実に保存
+            save(); 
             if (field === 'from' || field === 'title') drawDiagram();
         }
     }
 
     function deletePage(i) {
-        if(confirm('指定したページを破棄しますか？')) { 
+        if(confirm('このページを削除しますか？')) { 
             data[currentSite].splice(i, 1); 
             save(); 
             renderPages(); 
@@ -289,9 +319,9 @@
     }
 
     function deleteCurrentSite() {
-        if (confirm(currentSite + ' の全記録を消去します。よろしいですか？')) {
+        if (confirm(currentSite + ' を削除しますか？')) {
             delete data[currentSite];
-            save(); // これを忘れていたから動かなかったのよ
+            save(); 
             currentSite = null;
             document.getElementById('viewArea').style.display = 'none';
             document.getElementById('emptyMessage').style.display = 'block';
@@ -299,8 +329,7 @@
         }
     }
 
-    /* バックアップ機能 */
-    function exportAll() { downloadJSON(data, 'arg_backup_full.json'); }
+    function exportAll() { downloadJSON(data, 'arg_backup.json'); }
     function exportCurrentSite() { if(currentSite) downloadJSON({ [currentSite]: data[currentSite] }, `site_${currentSite}.json`); }
     function downloadJSON(obj, name) {
         const a = document.createElement('a');
@@ -313,6 +342,7 @@
             data = {...data, ...JSON.parse(ev.target.result)}; 
             save(); 
             alert('読み込み完了');
+            location.reload();
         };
         r.readAsText(e.target.files[0]);
     }
