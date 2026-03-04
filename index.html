@@ -36,6 +36,10 @@
         .btn-sub { background: #7f8c8d; font-size: 0.75em; margin: 2px; }
         .delete-btn { background: var(--danger); font-size: 0.8em; }
 
+        /* 検索ボックスのスタイル */
+        .search-container { margin-top: 20px; display: flex; align-items: center; gap: 10px; }
+        #searchBox { margin-bottom: 0; flex-grow: 1; border: 2px solid var(--accent); }
+
         table { width: 100%; border-collapse: collapse; margin-top: 20px; background: var(--white); box-shadow: 0 2px 10px rgba(0,0,0,0.05); table-layout: fixed; }
         th, td { border: 1px solid #eee; padding: 12px; text-align: left; vertical-align: top; }
         th { background: #f8f9fa; font-weight: bold; color: var(--primary); font-size: 0.9em; }
@@ -86,6 +90,11 @@
             <button onclick="addPage()" style="width: 100%; margin: 0;">追加</button>
         </div>
 
+        <div class="search-container">
+            <span style="font-size: 0.8em; font-weight: bold;">ページを絞り込む:</span>
+            <input type="text" id="searchBox" placeholder="キーワードを入力..." oninput="renderPages()">
+        </div>
+
         <table>
             <thead>
                 <tr>
@@ -110,11 +119,11 @@
 </div>
 
 <script>
-    let data = JSON.parse(localStorage.getItem('argDataV_FINAL')) || {};
+    let data = JSON.parse(localStorage.getItem('argDataV_SEARCH')) || {};
     let currentSite = null;
 
     function save() {
-        localStorage.setItem('argDataV_FINAL', JSON.stringify(data));
+        localStorage.setItem('argDataV_SEARCH', JSON.stringify(data));
         renderSiteList();
     }
 
@@ -182,6 +191,7 @@
 
     function selectSite(name) {
         currentSite = name;
+        document.getElementById('searchBox').value = ''; // サイト切り替え時に検索クリア
         document.getElementById('viewArea').style.display = 'block';
         document.getElementById('emptyMessage').style.display = 'none';
         document.getElementById('currentSiteTitle').textContent = name;
@@ -199,11 +209,9 @@
         }
 
         const num = parseInt(numInput);
-
-        // 重複チェック
         const isDuplicate = data[currentSite].some(page => page.num === num);
         if (isDuplicate) {
-            alert('そのNo.は既に登録されています。別の番号を入力してください。');
+            alert('そのNo.は既に登録されています。');
             return;
         }
 
@@ -225,7 +233,16 @@
         tbody.innerHTML = '';
         if (!currentSite) return;
 
+        const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+
         data[currentSite].forEach((page, index) => {
+            // 検索ワードが含まれているかチェック
+            const match = page.title.toLowerCase().includes(searchTerm) || 
+                          page.desc.toLowerCase().includes(searchTerm) ||
+                          page.num.toString().includes(searchTerm);
+            
+            if (!match) return;
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td style="color: var(--accent); font-weight: bold;">${page.num}</td>
@@ -241,7 +258,7 @@
     function updateData(index, field, value) {
         if (currentSite && data[currentSite][index]) {
             data[currentSite][index][field] = value.trim();
-            localStorage.setItem('argDataV_FINAL', JSON.stringify(data));
+            localStorage.setItem('argDataV_SEARCH', JSON.stringify(data));
         }
     }
 
