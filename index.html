@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARG Navigator - Path Finder</title>
+    <title>ARG Navigator - Final Visual</title>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <style>
         :root {
@@ -18,6 +18,7 @@
         }
         body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; }
         
+        /* サイドバー */
         #sidebar { width: 280px; background: var(--primary); color: var(--white); padding: 20px; overflow-y: auto; flex-shrink: 0; }
         #main { flex-grow: 1; padding: 40px; overflow-y: auto; }
         
@@ -38,9 +39,11 @@
         .delete-btn { background: var(--danger); font-size: 0.8em; }
 
         /* ダイアグラム表示エリア */
-        #diagramContainer { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-top: 20px; overflow-x: auto; min-height: 200px; }
-        .diagram-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        #diagramArea { transition: all 0.3s ease; overflow: hidden; }
+        #diagramContainer { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-top: 10px; overflow-x: auto; min-height: 200px; }
+        .diagram-header { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; background: #eee; padding: 10px; border-radius: 4px; }
 
+        /* テーブル設定 */
         table { width: 100%; border-collapse: collapse; margin-top: 20px; background: var(--white); box-shadow: 0 2px 10px rgba(0,0,0,0.05); table-layout: fixed; }
         th, td { border: 1px solid #eee; padding: 12px; text-align: left; vertical-align: top; }
         th { background: #f8f9fa; font-weight: bold; color: var(--primary); font-size: 0.9em; }
@@ -76,8 +79,8 @@
 <div id="main">
     <div id="viewArea" style="display:none;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <h2 id="currentSiteTitle">サイトを選択してください</h2>
-            <button class="btn-sub" style="background: var(--success);" onclick="exportCurrentSite()">このサイトのみ出力</button>
+            <h2 id="currentSiteTitle">サイトを選択</h2>
+            <button class="btn-sub" style="background: var(--success);" onclick="exportCurrentSite()">サイトのみ出力</button>
         </div>
         
         <div style="background: var(--white); padding: 20px; border-radius: 8px; border: 1px solid #ddd; margin-top: 10px;">
@@ -86,18 +89,24 @@
                 <input type="number" id="pageNum" placeholder="ID">
                 <input type="number" id="fromNum" placeholder="From(ID)">
                 <input type="text" id="pageTitle" placeholder="タイトル">
-                <input type="text" id="pageUrl" placeholder="URLを入力">
+                <input type="text" id="pageUrl" placeholder="URL">
             </div>
-            <textarea id="pageDesc" placeholder="概要・メモ（手がかり、遷移のきっかけなど）"></textarea>
+            <textarea id="pageDesc" placeholder="概要・メモ（手がかりなど）"></textarea>
             <button onclick="addPage()" style="width: 100%; margin: 0;">追加</button>
         </div>
 
         <div class="diagram-header">
-            <h3 style="margin: 20px 0 0 0; font-size: 1em;">遷移ルート相関図</h3>
-            <button class="btn-sub" onclick="drawDiagram()">図を更新</button>
+            <h3 style="margin: 0; font-size: 1em; color: #333;">遷移ルート相関図</h3>
+            <div>
+                <button class="btn-sub" onclick="toggleDiagram()">表示/非表示</button>
+                <button class="btn-sub" onclick="toggleDirection()">方向転換(縦/横)</button>
+                <button class="btn-sub" onclick="drawDiagram()">更新</button>
+            </div>
         </div>
-        <div id="diagramContainer">
-            <div id="mermaidGraph" class="mermaid">graph TD;</div>
+        <div id="diagramArea">
+            <div id="diagramContainer">
+                <div id="mermaidGraph" class="mermaid"></div>
+            </div>
         </div>
 
         <div class="search-container">
@@ -130,54 +139,70 @@
 </div>
 
 <script>
-    mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'neutral' });
+    // Mermaid設定: ゆったりめの配置
+    mermaid.initialize({ 
+        startOnLoad: false, 
+        securityLevel: 'loose', 
+        theme: 'neutral',
+        flowchart: { nodeSpacing: 80, rankSpacing: 80, curve: 'basis' }
+    });
 
-    let data = JSON.parse(localStorage.getItem('argDataV_PATH')) || {};
+    let data = JSON.parse(localStorage.getItem('argDataV_FULL')) || {};
     let currentSite = null;
+    let graphDir = 'TD'; 
 
     function save() {
-        localStorage.setItem('argDataV_PATH', JSON.stringify(data));
+        localStorage.setItem('argDataV_FULL', JSON.stringify(data));
         renderSiteList();
     }
 
-    /* 図解の生成・描画 */
+    /* 表示・非表示切り替え */
+    function toggleDiagram() {
+        const area = document.getElementById('diagramArea');
+        area.style.display = (area.style.display === 'none' ? 'block' : 'none');
+    }
+
+    /* 方向切り替え */
+    function toggleDirection() {
+        graphDir = (graphDir === 'TD' ? 'LR' : 'TD');
+        drawDiagram();
+    }
+
+    /* 相関図描画 */
     async function drawDiagram() {
         const container = document.getElementById('mermaidGraph');
         if (!currentSite || !data[currentSite] || data[currentSite].length === 0) {
-            container.innerHTML = 'データがありません。';
+            container.innerHTML = 'データなし';
             return;
         }
 
-        let graphDefinition = 'graph TD\n';
+        let graphDef = `graph ${graphDir}\n`;
         let hasLinks = false;
 
         data[currentSite].forEach(page => {
-            // ノードの定義
             const cleanTitle = (page.title || '無題').replace(/[()]/g, '');
-            graphDefinition += `  P${page.num}["ID:${page.num}<br/>${cleanTitle}"]\n`;
-            
-            // エッジ（遷移）の定義
+            graphDef += `  P${page.num}["ID:${page.num}<br/>${cleanTitle}"]\n`;
             if (page.from && page.from !== '') {
-                graphDefinition += `  P${page.from} --> P${page.num}\n`;
+                graphDef += `  P${page.from} --> P${page.num}\n`;
                 hasLinks = true;
             }
         });
 
         if (!hasLinks) {
-            container.innerHTML = '遷移元(From)が設定されているページがありません。';
+            container.innerHTML = 'From設定がありません。';
             return;
         }
 
         try {
             container.removeAttribute('data-processed');
-            container.innerHTML = graphDefinition;
+            container.innerHTML = graphDef;
             await mermaid.run({ nodes: [container] });
         } catch (e) {
-            container.innerHTML = '図の生成に失敗しました。IDの整合性を確認してください。';
+            container.innerHTML = '描画エラー。IDを確認してください。';
         }
     }
 
-    /* 基本ロジック */
+    /* サイト管理 */
     function addSite() {
         const name = document.getElementById('newSiteName').value.trim();
         if (name && !data[name]) {
@@ -210,55 +235,43 @@
         drawDiagram();
     }
 
+    /* ページ管理 */
     function addPage() {
-        const numInput = document.getElementById('pageNum').value;
-        const fromInput = document.getElementById('fromNum').value;
+        const numIn = document.getElementById('pageNum').value;
+        const fromIn = document.getElementById('fromNum').value;
         const url = document.getElementById('pageUrl').value.trim();
-        
-        if (!currentSite || !numInput || !url) {
-            alert('IDとURLは必須です。');
-            return;
-        }
+        if (!currentSite || !numIn || !url) return alert('IDとURLは必須よ');
 
-        const num = parseInt(numInput);
-        if (data[currentSite].some(p => p.num === num)) {
-            alert('そのIDは既に存在します。');
-            return;
-        }
+        const num = parseInt(numIn);
+        if (data[currentSite].some(p => p.num === num)) return alert('IDが重複してるわよ');
 
         data[currentSite].push({ 
-            num: num, 
-            from: fromInput ? parseInt(fromInput) : '',
+            num: num, from: fromIn ? parseInt(fromIn) : '',
             title: document.getElementById('pageTitle').value.trim() || '(無題)', 
-            url: url, 
-            desc: document.getElementById('pageDesc').value.trim() || '-' 
+            url: url, desc: document.getElementById('pageDesc').value.trim() || '-' 
         });
         
         data[currentSite].sort((a, b) => a.num - b.num);
         ['pageNum', 'fromNum', 'pageTitle', 'pageUrl', 'pageDesc'].forEach(id => document.getElementById(id).value = '');
-        save();
-        renderPages();
-        drawDiagram();
+        save(); renderPages(); drawDiagram();
     }
 
     function renderPages() {
         const tbody = document.getElementById('pageListBody');
         tbody.innerHTML = '';
         if (!currentSite) return;
+        const search = document.getElementById('searchBox').value.toLowerCase();
 
-        const searchTerm = document.getElementById('searchBox').value.toLowerCase();
-
-        data[currentSite].forEach((page, index) => {
-            if (searchTerm && !page.title.toLowerCase().includes(searchTerm) && !page.desc.toLowerCase().includes(searchTerm)) return;
-
+        data[currentSite].forEach((p, i) => {
+            if (search && !p.title.toLowerCase().includes(search) && !p.desc.toLowerCase().includes(search)) return;
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td style="color: var(--accent); font-weight: bold;">${page.num}</td>
-                <td class="editable-cell" contenteditable="true" onblur="updateData(${index}, 'from', this.innerText)">${page.from || ''}</td>
-                <td><div class="editable-cell" contenteditable="true" onblur="updateData(${index}, 'title', this.innerText)">${page.title}</div></td>
-                <td><a href="${page.url}" target="_blank">開く</a></td>
-                <td><div class="editable-cell" contenteditable="true" onblur="updateData(${index}, 'desc', this.innerText)">${page.desc}</div></td>
-                <td><button class="delete-btn" style="margin:0; padding:5px 10px;" onclick="deletePage(${index})">削</button></td>
+                <td style="color:var(--accent); font-weight:bold;">${p.num}</td>
+                <td class="editable-cell" contenteditable="true" onblur="updateData(${i}, 'from', this.innerText)">${p.from || ''}</td>
+                <td class="editable-cell" contenteditable="true" onblur="updateData(${i}, 'title', this.innerText)">${p.title}</td>
+                <td><a href="${p.url}" target="_blank">開く</a></td>
+                <td class="editable-cell" contenteditable="true" onblur="updateData(${i}, 'desc', this.innerText)">${p.desc}</td>
+                <td><button class="delete-btn" onclick="deletePage(${i})">削</button></td>
             `;
             tbody.appendChild(tr);
         });
@@ -266,49 +279,33 @@
 
     function updateData(index, field, value) {
         if (currentSite && data[currentSite][index]) {
-            let cleanValue = value.trim();
-            if (field === 'from') cleanValue = cleanValue ? parseInt(cleanValue) : '';
-            data[currentSite][index][field] = cleanValue;
-            localStorage.setItem('argDataV_PATH', JSON.stringify(data));
-            if (field === 'from') drawDiagram();
+            let val = value.trim();
+            if (field === 'from') val = val ? parseInt(val) : '';
+            data[currentSite][index][field] = val;
+            localStorage.setItem('argDataV_FULL', JSON.stringify(data));
+            if (field === 'from' || field === 'title') drawDiagram();
         }
     }
 
-    function deletePage(index) {
-        if(confirm('削除しますか？')) {
-            data[currentSite].splice(index, 1);
-            save();
-            renderPages();
-            drawDiagram();
-        }
+    function deletePage(i) {
+        if(confirm('消すわよ？')) { data[currentSite].splice(i, 1); save(); renderPages(); drawDiagram(); }
     }
 
-    /* エクスポート・インポート */
-    function exportAll() { downloadJSON(data, `arg_backup.json`); }
-    function exportCurrentSite() { if(currentSite) downloadJSON({ [currentSite]: data[currentSite] }, `arg_site_${currentSite}.json`); }
-    function downloadJSON(obj, filename) {
-        const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+    /* 入出力 */
+    function exportAll() { downloadJSON(data, 'arg_backup.json'); }
+    function exportCurrentSite() { if(currentSite) downloadJSON({ [currentSite]: data[currentSite] }, `site_${currentSite}.json`); }
+    function downloadJSON(obj, name) {
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(obj, null, 2)], {type:'application/json'}));
+        a.download = name; a.click();
     }
-    function importData(event) {
-        const file = event.target.files[0];
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                data = { ...data, ...JSON.parse(e.target.result) };
-                save(); alert('完了');
-            } catch { alert('失敗'); }
-        };
-        reader.readAsText(file);
+    function importData(e) {
+        const r = new FileReader();
+        r.onload = (ev) => { data = {...data, ...JSON.parse(ev.target.result)}; save(); };
+        r.readAsText(e.target.files[0]);
     }
     function deleteCurrentSite() {
-        if (confirm(currentSite + ' を削除？')) {
-            delete data[currentSite]; currentSite = null;
-            document.getElementById('viewArea').style.display = 'none';
-            document.getElementById('emptyMessage').style.display = 'block';
-            save();
-        }
+        if(confirm(currentSite + 'を消去？')) { delete data[currentSite]; currentSite=null; renderSiteList(); location.reload(); }
     }
 
     renderSiteList();
