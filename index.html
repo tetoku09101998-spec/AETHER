@@ -190,22 +190,34 @@
     }
 
     function addPage() {
-        const num = document.getElementById('pageNum').value;
+        const numInput = document.getElementById('pageNum').value;
         const url = document.getElementById('pageUrl').value.trim();
-        if (currentSite && num && url) {
-            data[currentSite].push({ 
-                num: parseInt(num), 
-                title: document.getElementById('pageTitle').value.trim() || '(無題)', 
-                url: url, 
-                desc: document.getElementById('pageDesc').value.trim() || '-' 
-            });
-            data[currentSite].sort((a, b) => a.num - b.num);
-            ['pageNum', 'pageTitle', 'pageUrl', 'pageDesc'].forEach(id => document.getElementById(id).value = '');
-            save();
-            renderPages();
-        } else {
+        
+        if (!currentSite || !numInput || !url) {
             alert('No.とURLは必ず入力してください。');
+            return;
         }
+
+        const num = parseInt(numInput);
+
+        // 重複チェック
+        const isDuplicate = data[currentSite].some(page => page.num === num);
+        if (isDuplicate) {
+            alert('そのNo.は既に登録されています。別の番号を入力してください。');
+            return;
+        }
+
+        data[currentSite].push({ 
+            num: num, 
+            title: document.getElementById('pageTitle').value.trim() || '(無題)', 
+            url: url, 
+            desc: document.getElementById('pageDesc').value.trim() || '-' 
+        });
+        
+        data[currentSite].sort((a, b) => a.num - b.num);
+        ['pageNum', 'pageTitle', 'pageUrl', 'pageDesc'].forEach(id => document.getElementById(id).value = '');
+        save();
+        renderPages();
     }
 
     function renderPages() {
