@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[SYS] ARG_NAVIGATOR_AETHER_JP</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --bg: #f4f7f6;
+            --white: #ffffff;
+            --text: #333;
+            --edit-bg: #fff9c4;
+            --success: #27ae60;
+            --danger: #e74c3c;
+        }
+        body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; }
+        
+        /* [UI_CORE] サイドバー設定 */
+        #sidebar { width: 280px; background: var(--primary); color: var(--white); padding: 20px; overflow-y: auto; flex-shrink: 0; }
+        #main { flex-grow: 1; padding: 30px; overflow-y: auto; }
+        
+        h2, h3 { color: var(--accent); letter-spacing: 1px; margin-top: 0; }
+        h2 { border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
+
+        .site-item { cursor: pointer; padding: 12px; border-radius: 4px; margin-bottom: 8px; transition: 0.2s; background: rgba(255,255,255,0.05); border: 1px solid transparent; font-size: 0.9em; }
+        .site-item:hover { background: rgba(255,255,255,0.15); border-color: var(--accent); }
+        .site-item.active { background: var(--accent); font-weight: bold; border-color: #fff; }
+
+        input, textarea, button { padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px; box-sizing: border-box; font-family: inherit; }
+        input, textarea { width: 100%; font-size: 14px; background: #fff; }
+        textarea { resize: vertical; height: 60px; }
+        
+        button { cursor: pointer; background: var(--accent); color: white; border: none; font-weight: bold; transition: 0.2s; font-size: 0.85em; }
+        button:hover { filter: brightness(1.1); }
+        .btn-sub { background: #7f8c8d; font-size: 0.75em; margin: 2px; }
+        .delete-btn { background: var(--danger); font-size: 0.8em; }
+
+        /* [DATA_GRID] テーブル設定 */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: var(--white); box-shadow: 0 2px 10px rgba(0,0,0,0.05); table-layout: fixed; }
+        th, td { border: 1px solid #eee; padding: 12px; text-align: left; vertical-align: top; }
+        th { background: #f8f9fa; font-weight: bold; color: var(--primary); font-size: 0.8em; }
+        
+        .editable-cell { outline: none; min-height: 1.2em; border-radius: 2px; padding: 4px; transition: background 0.2s; }
+        .editable-cell:hover { background: var(--edit-bg); cursor: text; }
+        .editable-cell:focus { background: #fff; box-shadow: 0 0 0 2px var(--accent); }
+
+        a { color: var(--accent); text-decoration: none; font-size: 0.85em; font-weight: bold; }
+        a:hover { text-decoration: underline; }
+        
+        .backup-section { margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2); }
+        #fileInput { display: none; }
+        
+        .sys-label { font-size: 0.7em; opacity: 0.7; margin-bottom: 5px; display: block; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <span class="sys-label">Target Management</span>
+    <h3>[SYS] サイトインデックス</h3>
+    <input type="text" id="newSiteName" placeholder="新規ターゲットを識別...">
+    <button onclick="addSite()" style="width:100%">サイトを登録</button>
+    
+    <div id="siteList"></div>
+
+    <div class="backup-section">
+        <span class="sys-label">Maintenance Protocol</span>
+        <button class="btn-sub" style="width:100%" onclick="exportAll()">全データをエクスポート</button>
+        <button class="btn-sub" style="width:100%" onclick="document.getElementById('fileInput').click()">データベースを復元</button>
+        <input type="file" id="fileInput" accept=".json" onchange="importData(event)">
+    </div>
+</div>
+
+<div id="main">
+    <div id="viewArea" style="display:none;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <h2 id="currentSiteTitle">TARGET_LOCKED</h2>
+            <button class="btn-sub" style="background: var(--success);" onclick="exportCurrentSite()">選択サイトのみ出力</button>
+        </div>
+        
+        <div style="background: var(--white); padding: 20px; border-radius: 8px; border: 1px solid #ddd; margin-top: 10px;">
+            <h4 style="margin: 0 0 10px 0; color: var(--primary); font-size: 0.9em;">[IO] ページデータ登録</h4>
+            <div style="display: grid; grid-template-columns: 80px 1fr 1fr; gap: 10px;">
+                <input type="number" id="pageNum" placeholder="No.">
+                <input type="text" id="pageTitle" placeholder="ページタイトル">
+                <input type="text" id="pageUrl" placeholder="ネットワークアドレス (URL)">
+            </div>
+            <textarea id="pageDesc" placeholder="解析メモ / ヒント..."></textarea>
+            <button onclick="addPage()" style="width: 100%; margin: 0;">データを記録</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 50px;">ID</th>
+                    <th style="width: 20%;">タイトル</th>
+                    <th style="width: 25%;">アクセスURL</th>
+                    <th>解析データ / メモ</th>
+                    <th style="width: 60px;">操作</th>
+                </tr>
+            </thead>
+            <tbody id="pageListBody"></tbody>
+        </table>
+        
+        <div style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px;">
+            <button class="delete-btn" onclick="deleteCurrentSite()">サイト情報の完全削除</button>
+        </div>
+    </div>
+    
+    <div id="emptyMessage" style="color: #999; text-align: center; margin-top: 100px;">
+        [待機中] サイドバーからターゲットを選択してください。
+    </div>
+</div>
+
+<script>
+    /* データベース初期化 */
+    let data = JSON.parse(localStorage.getItem('argDataV_FINAL_JP')) || {};
+    let currentSite = null;
+
+    function save() {
+        localStorage.setItem('argDataV_FINAL_JP', JSON.stringify(data));
+        renderSiteList();
+    }
+
+    /* エクスポート処理 */
+    function downloadJSON(obj, filename) {
+        const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function exportAll() {
+        downloadJSON(data, `ARG_BACKUP_FULL.json`);
+    }
+
+    function exportCurrentSite() {
+        if (!currentSite) return;
+        const siteData = { [currentSite]: data[currentSite] };
+        downloadJSON(siteData, `ARG_SITE_${currentSite}.json`);
+    }
+
+    /* インポート処理 */
+    function importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const imported = JSON.parse(e.target.result);
+                if (confirm('システム警告: 同名のサイトデータは上書きされます。続行しますか？')) {
+                    data = { ...data, ...imported };
+                    save();
+                    alert('データベースの復元が完了しました。');
+                }
+            } catch (err) {
+                alert('エラー: ファイル形式が正しくありません。');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    /* サイト管理ロジック */
+    function addSite() {
+        const name = document.getElementById('newSiteName').value.trim();
+        if (name && !data[name]) {
+            data[name] = [];
+            document.getElementById('newSiteName').value = '';
+            save();
+            selectSite(name);
+        }
+    }
+
+    function renderSiteList() {
+        const list = document.getElementById('siteList');
+        list.innerHTML = '';
+        Object.keys(data).forEach(name => {
+            const div = document.createElement('div');
+            div.className = `site-item ${name === currentSite ? 'active' : ''}`;
+            div.textContent = `> ${name}`;
+            div.onclick = () => selectSite(name);
+            list.appendChild(div);
+        });
+    }
+
+    function selectSite(name) {
+        currentSite = name;
+        document.getElementById('viewArea').style.display = 'block';
+        document.getElementById('emptyMessage').style.display = 'none';
+        document.getElementById('currentSiteTitle').textContent = `[TARGET] ${name}`;
+        renderSiteList();
+        renderPages();
+    }
+
+    /* ページデータ管理 */
+    function addPage() {
+        const num = document.getElementById('pageNum').value;
+        const url = document.getElementById('pageUrl').value.trim();
+        if (currentSite && num && url) {
+            data[currentSite].push({ 
+                num: parseInt(num), 
+                title: document.getElementById('pageTitle').value.trim() || '(無題)', 
+                url: url, 
+                desc: document.getElementById('pageDesc').value.trim() || '(未入力)' 
+            });
+            data[currentSite].sort((a, b) => a.num - b.num);
+            ['pageNum', 'pageTitle', 'pageUrl', 'pageDesc'].forEach(id => document.getElementById(id).value = '');
+            save();
+            renderPages();
+        } else {
+            alert('入力エラー: IDおよびURLは必須項目です。');
+        }
+    }
+
+    function renderPages() {
+        const tbody = document.getElementById('pageListBody');
+        tbody.innerHTML = '';
+        if (!currentSite) return;
+
+        data[currentSite].forEach((page, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="color: var(--accent); font-weight: bold; font-family: monospace;">${page.num}</td>
+                <td><div class="editable-cell" contenteditable="true" onblur="updateData(${index}, 'title', this.innerText)">${page.title}</div></td>
+                <td><a href="${page.url}" target="_blank">URLを開く</a></td>
+                <td><div class="editable-cell" contenteditable="true" onblur="updateData(${index}, 'desc', this.innerText)">${page.desc}</div></td>
+                <td><button class="delete-btn" style="margin:0; padding:5px 10px;" onclick="deletePage(${index})">削除</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function updateData(index, field, value) {
+        if (currentSite && data[currentSite][index]) {
+            data[currentSite][index][field] = value.trim();
+            localStorage.setItem('argDataV_FINAL_JP', JSON.stringify(data));
+        }
+    }
+
+    function deletePage(index) {
+        if(confirm('指定したレコードを破棄しますか？')) {
+            data[currentSite].splice(index, 1);
+            save();
+            renderPages();
+        }
+    }
+
+    function deleteCurrentSite() {
+        if (confirm('重要警告: サイト内の全記録を完全に消去します。よろしいですか？')) {
+            delete data[currentSite];
+            currentSite = null;
+            document.getElementById('viewArea').style.display = 'none';
+            document.getElementById('emptyMessage').style.display = 'block';
+            save();
+        }
+    }
+
+    /* 初期化実行 */
+    renderSiteList();
+</script>
+</body>
+</html>
