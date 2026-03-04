@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARG Navigator - Stealth Edition</title>
+    <title>ARG Navigator - Fixed Stealth</title>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <style>
         :root {
@@ -225,7 +225,6 @@
         document.getElementById('currentSiteTitle').textContent = name;
         renderSiteList();
         renderPages();
-        // 描画は裏で行っておくが、表示・非表示の状態は維持されるわ
         drawDiagram();
     }
 
@@ -275,16 +274,33 @@
             let val = value.trim();
             if (field === 'from') val = val ? parseInt(val) : '';
             data[currentSite][index][field] = val;
-            localStorage.setItem('argDataV_FINAL', JSON.stringify(data));
+            save(); // ここで確実に保存
             if (field === 'from' || field === 'title') drawDiagram();
         }
     }
 
     function deletePage(i) {
-        if(confirm('消すわよ？')) { data[currentSite].splice(i, 1); save(); renderPages(); drawDiagram(); }
+        if(confirm('指定したページを破棄しますか？')) { 
+            data[currentSite].splice(i, 1); 
+            save(); 
+            renderPages(); 
+            drawDiagram(); 
+        }
     }
 
-    function exportAll() { downloadJSON(data, 'arg_backup.json'); }
+    function deleteCurrentSite() {
+        if (confirm(currentSite + ' の全記録を消去します。よろしいですか？')) {
+            delete data[currentSite];
+            save(); // これを忘れていたから動かなかったのよ
+            currentSite = null;
+            document.getElementById('viewArea').style.display = 'none';
+            document.getElementById('emptyMessage').style.display = 'block';
+            renderSiteList();
+        }
+    }
+
+    /* バックアップ機能 */
+    function exportAll() { downloadJSON(data, 'arg_backup_full.json'); }
     function exportCurrentSite() { if(currentSite) downloadJSON({ [currentSite]: data[currentSite] }, `site_${currentSite}.json`); }
     function downloadJSON(obj, name) {
         const a = document.createElement('a');
@@ -293,11 +309,12 @@
     }
     function importData(e) {
         const r = new FileReader();
-        r.onload = (ev) => { data = {...data, ...JSON.parse(ev.target.result)}; save(); };
+        r.onload = (ev) => { 
+            data = {...data, ...JSON.parse(ev.target.result)}; 
+            save(); 
+            alert('読み込み完了');
+        };
         r.readAsText(e.target.files[0]);
-    }
-    function deleteCurrentSite() {
-        if(confirm(currentSite + 'を消去？')) { delete data[currentSite]; currentSite=null; renderSiteList(); location.reload(); }
     }
 
     renderSiteList();
