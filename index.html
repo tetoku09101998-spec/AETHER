@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARG Navigator - v1.8.0</title>
+    <title>ARG Navigator - v1.8.1</title>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <style>
         :root {
@@ -26,7 +26,8 @@
         h2, h3 { color: var(--accent); margin-top: 0; font-weight: 600; }
         h2 { border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 20px; }
 
-        .version-tag { font-family: 'Consolas', monospace; font-size: 0.7em; opacity: 0.5; margin-top: -15px; margin-bottom: 20px; display: block; letter-spacing: 1px; }
+        /* バージョン表記の重なりを修正 */
+        .version-tag { font-family: 'Consolas', monospace; font-size: 0.7em; opacity: 0.5; margin-top: 0; margin-bottom: 20px; display: block; letter-spacing: 1px; }
 
         .site-item { cursor: pointer; padding: 12px; border-radius: 6px; margin-bottom: 8px; transition: 0.2s; background: rgba(255,255,255,0.05); border: 1px solid transparent; font-size: 0.9em; }
         .site-item:hover { background: rgba(255,255,255,0.15); }
@@ -78,7 +79,7 @@
 
 <div id="sidebar">
     <h3 style="color: #fff; opacity: 0.9; margin-bottom: 5px;">Navigate-U</h3>
-    <span class="version-tag">VER 1.8.0 / STABLE</span>
+    <span class="version-tag">VER 1.8.1 / STABLE</span>
     
     <div style="margin-bottom: 25px;">
         <input type="text" id="newSiteName" placeholder="新規サイト名..." style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
