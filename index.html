@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Navigate-U v2.0.2</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Navigate-U v2.1.0</title>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <style>
         :root {
@@ -17,8 +17,9 @@
             --danger: #e74c3c;
             --border: #dcdde1;
         }
-        body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; }
+        body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
+        /* サイドバー */
         #sidebar { width: 280px; background: var(--primary); color: var(--white); padding: 20px; overflow-y: auto; flex-shrink: 0; border-right: 1px solid rgba(0,0,0,0.1); }
         #main { flex-grow: 1; padding: 40px; overflow-y: auto; }
         
@@ -29,42 +30,61 @@
         .site-item:hover { background: rgba(255,255,255,0.15); }
         .site-item.active { background: var(--accent); font-weight: bold; border-color: rgba(255,255,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
 
-        input, textarea, button { padding: 10px; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 10px; box-sizing: border-box; font-family: inherit; transition: 0.2s; }
-        input, textarea { width: 100%; font-size: 14px; background: #fff; }
+        input, textarea, button { padding: 10px; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 10px; box-sizing: border-box; font-family: inherit; transition: 0.2s; font-size: 16px; /* スマホのズーム防止 */ }
+        input:focus, textarea:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2); }
         textarea { resize: vertical; height: 70px; }
         
         button { cursor: pointer; background: var(--accent); color: white; border: none; font-weight: bold; }
-        .btn-sub { background: #7f8c8d; font-size: 0.75em; margin: 2px; padding: 6px 12px; }
-        .btn-action { background: #2980b9; font-size: 0.75em; margin: 2px; padding: 6px 12px; }
-        .delete-btn { background: var(--danger); font-size: 0.8em; padding: 4px 8px; }
+        .btn-sub { background: #7f8c8d; font-size: 0.75em; margin: 2px; padding: 8px 12px; }
+        .btn-action { background: #2980b9; font-size: 0.75em; margin: 2px; padding: 8px 12px; }
+        .delete-btn { background: var(--danger); font-size: 0.8em; padding: 6px 10px; }
 
         #diagramArea { display: none; margin-top: 15px; }
         #diagramContainer { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 20px; overflow-x: auto; min-height: 250px; }
-        .diagram-header { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; background: #eaedf0; padding: 12px 20px; border-radius: 6px; border: 1px solid var(--border); }
+        .diagram-header { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; background: #eaedf0; padding: 12px 20px; border-radius: 6px; border: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
 
         .form-grid { display: grid; grid-template-columns: 100px 100px 1.5fr 2fr; gap: 15px; margin-bottom: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 25px; background: var(--white); box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; table-layout: fixed; }
+        
+        /* テーブルのレスポンシブ対応 */
+        .table-responsive { width: 100%; overflow-x: auto; margin-top: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-radius: 8px; background: var(--white); -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; table-layout: fixed; }
         th, td { border-bottom: 1px solid #f1f2f6; padding: 14px; text-align: left; vertical-align: middle; }
         th { background: #f8f9fa; font-weight: bold; color: var(--primary); font-size: 0.85em; text-transform: uppercase; }
         
         .col-num { font-family: 'Consolas', monospace; text-align: center; font-weight: bold; color: var(--accent); width: 80px; word-break: break-all; }
         .col-from { font-family: 'Consolas', monospace; text-align: center; width: 80px; color: #7f8c8d; word-break: break-all; }
-        .col-check { text-align: center; width: 40px; }
+        .col-check { text-align: center; width: 50px; }
         
         .editable-cell { outline: none; min-height: 1.2em; border-radius: 3px; padding: 6px; transition: 0.2s; border: 1px solid transparent; }
         .editable-cell:hover { background: var(--edit-bg); cursor: text; }
-        a { color: var(--accent); text-decoration: none; font-size: 0.85em; font-weight: bold; border: 1px solid var(--accent); padding: 4px 8px; border-radius: 4px; }
+        a { color: var(--accent); text-decoration: none; font-size: 0.85em; font-weight: bold; border: 1px solid var(--accent); padding: 6px 10px; border-radius: 4px; display: inline-block; }
 
         .search-container { margin: 25px 0 10px 0; display: flex; align-items: center; gap: 12px; background: #fff; padding: 10px 15px; border-radius: 6px; border: 1px solid var(--border); }
         .backup-section { margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
         #fileInput { display: none; }
+        input[type="checkbox"] { transform: scale(1.3); cursor: pointer; margin: 0; }
+
+        /* ======== スマホ向けレイアウト (Media Queries) ======== */
+        @media screen and (max-width: 768px) {
+            body { flex-direction: column; overflow: auto; }
+            #sidebar { width: 100%; max-height: 35vh; border-right: none; border-bottom: 2px solid var(--accent); padding: 15px; box-sizing: border-box; }
+            #main { padding: 15px; overflow-y: visible; }
+            
+            .form-grid { grid-template-columns: 1fr; gap: 8px; }
+            .form-grid input { text-align: left; }
+            
+            .diagram-header { flex-direction: column; align-items: flex-start; }
+            .diagram-header > div { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+            
+            h2#currentSiteTitle { font-size: 1.2em; word-break: break-all; }
+        }
     </style>
 </head>
 <body>
 
 <div id="sidebar">
     <h3>Navigate-U</h3>
-    <span class="version-tag">VER 2.0.2 / PATCHED</span>
+    <span class="version-tag">VER 2.1.0 / RESPONSIVE</span>
     
     <div style="margin-bottom: 25px;">
         <input type="text" id="newSiteName" placeholder="新規サイト名...">
@@ -80,14 +100,14 @@
 
 <div id="main">
     <div id="viewArea" style="display:none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2 id="currentSiteTitle" style="color: var(--primary);">TARGET_LOCKED</h2>
-            <button class="btn-sub" style="background: var(--success);" onclick="exportCurrentSite()">サイト出力</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+            <h2 id="currentSiteTitle" style="color: var(--primary); margin: 0;">TARGET_LOCKED</h2>
+            <button class="btn-sub" style="background: var(--success); margin: 0;" onclick="exportCurrentSite()">サイト出力</button>
         </div>
-        <div style="background: #fff; padding: 25px; border-radius: 8px; border: 1px solid var(--border);">
+        <div style="background: #fff; padding: 20px; border-radius: 8px; border: 1px solid var(--border);">
             <div class="form-grid">
-                <input type="text" id="pageNum" placeholder="ID">
-                <input type="text" id="fromNum" placeholder="From">
+                <input type="text" id="pageNum" placeholder="ID (例: 1, 8-A)">
+                <input type="text" id="fromNum" placeholder="From (遷移元のID)">
                 <input type="text" id="pageTitle" placeholder="タイトル">
                 <input type="text" id="pageUrl" placeholder="URL">
             </div>
@@ -106,11 +126,15 @@
         </div>
         <div id="diagramArea"><div id="diagramContainer"><div id="mermaidGraph" class="mermaid"></div></div></div>
         <div class="search-container"><input type="text" id="searchBox" placeholder="検索..." oninput="renderPages()"></div>
-        <table>
-            <thead><tr><th class="col-check">図</th><th class="col-num">ID</th><th class="col-from">From</th><th style="width: 25%;">タイトル</th><th style="width: 80px;">Link</th><th>メモ</th><th style="width: 50px;">消去</th></tr></thead>
-            <tbody id="pageListBody"></tbody>
-        </table>
-        <div style="margin-top: 50px; text-align: right;"><button class="delete-btn" onclick="deleteCurrentSite()">サイト全削除</button></div>
+        
+        <div class="table-responsive">
+            <table>
+                <thead><tr><th class="col-check">図</th><th class="col-num">ID</th><th class="col-from">From</th><th style="width: 25%;">タイトル</th><th style="width: 80px;">Link</th><th>メモ</th><th style="width: 50px;">消去</th></tr></thead>
+                <tbody id="pageListBody"></tbody>
+            </table>
+        </div>
+
+        <div style="margin-top: 50px; text-align: right;"><button class="delete-btn" onclick="deleteCurrentSite()" style="padding: 12px 20px;">サイト全削除</button></div>
     </div>
     <div id="emptyMessage" style="color: #999; text-align: center; margin-top: 120px;">[WAITING] 対象を選択してください</div>
 </div>
@@ -135,7 +159,6 @@
 
     function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); renderSiteList(); }
 
-    /* 修正ポイント: 堅牢なダウンロード処理 */
     function downloadJSON(obj, filename) {
         const blob = new Blob([JSON.stringify(obj, null, 2)], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
@@ -145,10 +168,7 @@
         a.download = filename;
         document.body.appendChild(a);
         a.click();
-        setTimeout(() => {
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        }, 100);
+        setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
     }
 
     function exportAll() { downloadJSON(data, 'NavigateU_FullBackup.json'); }
