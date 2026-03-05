@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Navigate-U v2.0.1</title>
+    <title>Navigate-U v2.0.2</title>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <style>
         :root {
@@ -58,14 +58,13 @@
         .search-container { margin: 25px 0 10px 0; display: flex; align-items: center; gap: 12px; background: #fff; padding: 10px 15px; border-radius: 6px; border: 1px solid var(--border); }
         .backup-section { margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
         #fileInput { display: none; }
-        input[type="checkbox"] { transform: scale(1.2); cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div id="sidebar">
     <h3>Navigate-U</h3>
-    <span class="version-tag">VER 2.0.1 / MIGRATED</span>
+    <span class="version-tag">VER 2.0.2 / PATCHED</span>
     
     <div style="margin-bottom: 25px;">
         <input type="text" id="newSiteName" placeholder="新規サイト名...">
@@ -123,17 +122,10 @@
     const OLD_KEYS = ['argDataV_UNIVERSAL', 'argDataV_SELECTIVE', 'argDataV_FINAL', 'argDataV_SEARCH'];
     
     let data = JSON.parse(localStorage.getItem(STORAGE_KEY));
-
-    // マイグレーションロジック
     if (!data) {
         for (const key of OLD_KEYS) {
             const oldData = localStorage.getItem(key);
-            if (oldData) {
-                data = JSON.parse(oldData);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-                console.log(`Migrated from ${key}`);
-                break;
-            }
+            if (oldData) { data = JSON.parse(oldData); localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); break; }
         }
         data = data || {};
     }
@@ -142,6 +134,26 @@
     let graphDir = 'TD'; 
 
     function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); renderSiteList(); }
+
+    /* 修正ポイント: 堅牢なダウンロード処理 */
+    function downloadJSON(obj, filename) {
+        const blob = new Blob([JSON.stringify(obj, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }, 100);
+    }
+
+    function exportAll() { downloadJSON(data, 'NavigateU_FullBackup.json'); }
+    function exportCurrentSite() { if (currentSite) downloadJSON({ [currentSite]: data[currentSite] }, `SiteLog_${currentSite}.json`); }
+
     function bulkToggle(state) { if (currentSite) { data[currentSite].forEach(p => p.showInGraph = state); save(); renderPages(); drawDiagram(); } }
     function toggleDiagram() { const area = document.getElementById('diagramArea'); area.style.display = (area.style.display === 'none' || area.style.display === '') ? 'block' : 'none'; if (area.style.display === 'block') drawDiagram(); }
     function toggleDirection() { graphDir = (graphDir === 'TD' ? 'LR' : 'TD'); drawDiagram(); }
@@ -191,7 +203,6 @@
     function updateData(i, f, v) { if (currentSite) { data[currentSite][i][f] = v.trim(); save(); drawDiagram(); } }
     function deletePage(i) { if(confirm('消去？')) { data[currentSite].splice(i, 1); save(); renderPages(); drawDiagram(); } }
     function deleteCurrentSite() { if (confirm('全消去？')) { delete data[currentSite]; save(); currentSite = null; location.reload(); } }
-    function exportAll() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], {type:'application/json'})); a.download = 'NavigateU_FullBackup.json'; a.click(); }
     function importData(e) { const r = new FileReader(); r.onload = (ev) => { data = {...data, ...JSON.parse(ev.target.result)}; save(); location.reload(); }; r.readAsText(e.target.files[0]); }
     renderSiteList();
 </script>
