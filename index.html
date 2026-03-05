@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Navigate-U v2.0.0</title>
+    <title>Navigate-U v2.0.1</title>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <style>
         :root {
@@ -19,7 +19,6 @@
         }
         body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; }
         
-        /* サイドバー */
         #sidebar { width: 280px; background: var(--primary); color: var(--white); padding: 20px; overflow-y: auto; flex-shrink: 0; border-right: 1px solid rgba(0,0,0,0.1); }
         #main { flex-grow: 1; padding: 40px; overflow-y: auto; }
         
@@ -31,12 +30,10 @@
         .site-item.active { background: var(--accent); font-weight: bold; border-color: rgba(255,255,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
 
         input, textarea, button { padding: 10px; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 10px; box-sizing: border-box; font-family: inherit; transition: 0.2s; }
-        input:focus, textarea:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2); }
         input, textarea { width: 100%; font-size: 14px; background: #fff; }
         textarea { resize: vertical; height: 70px; }
         
         button { cursor: pointer; background: var(--accent); color: white; border: none; font-weight: bold; }
-        button:hover { filter: brightness(1.05); }
         .btn-sub { background: #7f8c8d; font-size: 0.75em; margin: 2px; padding: 6px 12px; }
         .btn-action { background: #2980b9; font-size: 0.75em; margin: 2px; padding: 6px 12px; }
         .delete-btn { background: var(--danger); font-size: 0.8em; padding: 4px 8px; }
@@ -46,8 +43,6 @@
         .diagram-header { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; background: #eaedf0; padding: 12px 20px; border-radius: 6px; border: 1px solid var(--border); }
 
         .form-grid { display: grid; grid-template-columns: 100px 100px 1.5fr 2fr; gap: 15px; margin-bottom: 10px; }
-        .form-grid input { margin-bottom: 0; text-align: center; }
-
         table { width: 100%; border-collapse: collapse; margin-top: 25px; background: var(--white); box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; table-layout: fixed; }
         th, td { border-bottom: 1px solid #f1f2f6; padding: 14px; text-align: left; vertical-align: middle; }
         th { background: #f8f9fa; font-weight: bold; color: var(--primary); font-size: 0.85em; text-transform: uppercase; }
@@ -58,14 +53,9 @@
         
         .editable-cell { outline: none; min-height: 1.2em; border-radius: 3px; padding: 6px; transition: 0.2s; border: 1px solid transparent; }
         .editable-cell:hover { background: var(--edit-bg); cursor: text; }
-        .editable-cell:focus { background: #fff; box-shadow: 0 0 0 2px var(--accent); }
-
-        a { color: var(--accent); text-decoration: none; font-size: 0.85em; font-weight: bold; border: 1px solid var(--accent); padding: 4px 8px; border-radius: 4px; transition: 0.2s; }
-        a:hover { background: var(--accent); color: #fff; }
+        a { color: var(--accent); text-decoration: none; font-size: 0.85em; font-weight: bold; border: 1px solid var(--accent); padding: 4px 8px; border-radius: 4px; }
 
         .search-container { margin: 25px 0 10px 0; display: flex; align-items: center; gap: 12px; background: #fff; padding: 10px 15px; border-radius: 6px; border: 1px solid var(--border); }
-        #searchBox { margin-bottom: 0; flex-grow: 1; border: none; font-size: 15px; }
-
         .backup-section { margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
         #fileInput { display: none; }
         input[type="checkbox"] { transform: scale(1.2); cursor: pointer; }
@@ -75,15 +65,13 @@
 
 <div id="sidebar">
     <h3>Navigate-U</h3>
-    <span class="version-tag">VER 2.0.0 / PERSISTENT</span>
+    <span class="version-tag">VER 2.0.1 / MIGRATED</span>
     
     <div style="margin-bottom: 25px;">
-        <input type="text" id="newSiteName" placeholder="新規サイト名..." style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+        <input type="text" id="newSiteName" placeholder="新規サイト名...">
         <button onclick="addSite()" style="width:100%; background: var(--accent);">サイト登録</button>
     </div>
-    
     <div id="siteList"></div>
-
     <div class="backup-section">
         <button class="btn-sub" style="width:100%" onclick="exportAll()">全バックアップ出力</button>
         <button class="btn-sub" style="width:100%; margin-top:5px;" onclick="document.getElementById('fileInput').click()">JSONから復元</button>
@@ -97,7 +85,6 @@
             <h2 id="currentSiteTitle" style="color: var(--primary);">TARGET_LOCKED</h2>
             <button class="btn-sub" style="background: var(--success);" onclick="exportCurrentSite()">サイト出力</button>
         </div>
-        
         <div style="background: #fff; padding: 25px; border-radius: 8px; border: 1px solid var(--border);">
             <div class="form-grid">
                 <input type="text" id="pageNum" placeholder="ID">
@@ -108,7 +95,6 @@
             <textarea id="pageDesc" placeholder="メモ..."></textarea>
             <button onclick="addPage()" style="width: 100%; padding: 12px;">追加</button>
         </div>
-
         <div class="diagram-header">
             <h3 style="margin: 0; font-size: 0.9em; color: var(--primary);">RELATIONSHIP MAP</h3>
             <div>
@@ -120,66 +106,51 @@
             </div>
         </div>
         <div id="diagramArea"><div id="diagramContainer"><div id="mermaidGraph" class="mermaid"></div></div></div>
-
         <div class="search-container"><input type="text" id="searchBox" placeholder="検索..." oninput="renderPages()"></div>
-
         <table>
-            <thead>
-                <tr>
-                    <th class="col-check">図</th>
-                    <th class="col-num">ID</th>
-                    <th class="col-from">From</th>
-                    <th style="width: 25%;">タイトル</th>
-                    <th style="width: 80px;">Link</th>
-                    <th>メモ</th>
-                    <th style="width: 50px;">消去</th>
-                </tr>
-            </thead>
+            <thead><tr><th class="col-check">図</th><th class="col-num">ID</th><th class="col-from">From</th><th style="width: 25%;">タイトル</th><th style="width: 80px;">Link</th><th>メモ</th><th style="width: 50px;">消去</th></tr></thead>
             <tbody id="pageListBody"></tbody>
         </table>
-        
         <div style="margin-top: 50px; text-align: right;"><button class="delete-btn" onclick="deleteCurrentSite()">サイト全削除</button></div>
     </div>
-    
     <div id="emptyMessage" style="color: #999; text-align: center; margin-top: 120px;">[WAITING] 対象を選択してください</div>
 </div>
 
 <script>
     mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'neutral', flowchart: { nodeSpacing: 100, rankSpacing: 80, curve: 'basis' }});
 
-    // 保存キーを固定（これで更新しても消えなくなるわよ）
     const STORAGE_KEY = 'NavigateU_PersistentData';
-    let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+    const OLD_KEYS = ['argDataV_UNIVERSAL', 'argDataV_SELECTIVE', 'argDataV_FINAL', 'argDataV_SEARCH'];
+    
+    let data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+
+    // マイグレーションロジック
+    if (!data) {
+        for (const key of OLD_KEYS) {
+            const oldData = localStorage.getItem(key);
+            if (oldData) {
+                data = JSON.parse(oldData);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                console.log(`Migrated from ${key}`);
+                break;
+            }
+        }
+        data = data || {};
+    }
+
     let currentSite = null;
     let graphDir = 'TD'; 
 
-    function save() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        renderSiteList();
-    }
-
-    function bulkToggle(state) {
-        if (!currentSite || !data[currentSite]) return;
-        data[currentSite].forEach(p => p.showInGraph = state);
-        save(); renderPages(); drawDiagram();
-    }
-
-    function toggleDiagram() {
-        const area = document.getElementById('diagramArea');
-        area.style.display = (area.style.display === 'none' || area.style.display === '') ? 'block' : 'none';
-        if (area.style.display === 'block') drawDiagram();
-    }
-
+    function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); renderSiteList(); }
+    function bulkToggle(state) { if (currentSite) { data[currentSite].forEach(p => p.showInGraph = state); save(); renderPages(); drawDiagram(); } }
+    function toggleDiagram() { const area = document.getElementById('diagramArea'); area.style.display = (area.style.display === 'none' || area.style.display === '') ? 'block' : 'none'; if (area.style.display === 'block') drawDiagram(); }
     function toggleDirection() { graphDir = (graphDir === 'TD' ? 'LR' : 'TD'); drawDiagram(); }
 
     async function drawDiagram() {
         const container = document.getElementById('mermaidGraph');
-        if (document.getElementById('diagramArea').style.display === 'none') return;
-        if (!currentSite || !data[currentSite]) return;
-
+        if (document.getElementById('diagramArea').style.display === 'none' || !currentSite) return;
         let graphDef = `graph ${graphDir}\n`;
         const visibleIds = new Set(data[currentSite].filter(p => p.showInGraph !== false).map(p => p.num.toString()));
-
         data[currentSite].forEach(page => {
             if (!visibleIds.has(page.num.toString())) return;
             const mId = "N_" + page.num.toString().replace(/[^a-zA-Z0-9]/g, '_');
@@ -189,53 +160,22 @@
                 graphDef += `  ${fId} --> ${mId}\n`;
             }
         });
-
-        try { container.removeAttribute('data-processed'); container.innerHTML = graphDef; await mermaid.run({ nodes: [container] }); }
-        catch (e) { container.innerHTML = 'GRAPH ERROR'; }
+        try { container.removeAttribute('data-processed'); container.innerHTML = graphDef; await mermaid.run({ nodes: [container] }); } catch (e) { container.innerHTML = 'GRAPH ERROR'; }
     }
 
-    function addSite() {
-        const name = document.getElementById('newSiteName').value.trim();
-        if (name && !data[name]) { data[name] = []; save(); selectSite(name); document.getElementById('newSiteName').value = ''; }
-    }
-
-    function renderSiteList() {
-        const list = document.getElementById('siteList');
-        list.innerHTML = '';
-        Object.keys(data).forEach(name => {
-            const div = document.createElement('div');
-            div.className = `site-item ${name === currentSite ? 'active' : ''}`;
-            div.textContent = `> ${name}`;
-            div.onclick = () => selectSite(name);
-            list.appendChild(div);
-        });
-    }
-
-    function selectSite(name) {
-        currentSite = name;
-        document.getElementById('viewArea').style.display = 'block';
-        document.getElementById('emptyMessage').style.display = 'none';
-        document.getElementById('currentSiteTitle').textContent = `[TARGET] ${name}`;
-        renderSiteList(); renderPages(); drawDiagram();
-    }
-
+    function addSite() { const name = document.getElementById('newSiteName').value.trim(); if (name && !data[name]) { data[name] = []; save(); selectSite(name); document.getElementById('newSiteName').value = ''; } }
+    function renderSiteList() { const list = document.getElementById('siteList'); list.innerHTML = ''; Object.keys(data).forEach(name => { const div = document.createElement('div'); div.className = `site-item ${name === currentSite ? 'active' : ''}`; div.textContent = `> ${name}`; div.onclick = () => selectSite(name); list.appendChild(div); }); }
+    function selectSite(name) { currentSite = name; document.getElementById('viewArea').style.display = 'block'; document.getElementById('emptyMessage').style.display = 'none'; document.getElementById('currentSiteTitle').textContent = `[TARGET] ${name}`; renderSiteList(); renderPages(); drawDiagram(); }
     function addPage() {
         const numIn = document.getElementById('pageNum').value.trim();
         const url = document.getElementById('pageUrl').value.trim();
         if (!currentSite || !numIn || !url) return alert('IDとURLは必須');
         if (data[currentSite].some(p => p.num.toString() === numIn)) return alert('ID重複');
-
-        data[currentSite].push({ 
-            num: numIn, from: document.getElementById('fromNum').value.trim(),
-            title: document.getElementById('pageTitle').value.trim() || '(無題)', 
-            url: url, desc: document.getElementById('pageDesc').value.trim() || '-',
-            showInGraph: true 
-        });
+        data[currentSite].push({ num: numIn, from: document.getElementById('fromNum').value.trim(), title: document.getElementById('pageTitle').value.trim() || '(無題)', url: url, desc: document.getElementById('pageDesc').value.trim() || '-', showInGraph: true });
         data[currentSite].sort((a, b) => a.num.toString().localeCompare(b.num.toString(), undefined, {numeric: true}));
         ['pageNum', 'fromNum', 'pageTitle', 'pageUrl', 'pageDesc'].forEach(id => document.getElementById(id).value = '');
         save(); renderPages(); drawDiagram();
     }
-
     function renderPages() {
         const tbody = document.getElementById('pageListBody');
         tbody.innerHTML = ''; if (!currentSite) return;
@@ -243,26 +183,16 @@
         data[currentSite].forEach((p, i) => {
             if (search && !p.title.toLowerCase().includes(search) && !p.desc.toLowerCase().includes(search) && !p.num.toString().toLowerCase().includes(search)) return;
             const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="col-check"><input type="checkbox" ${p.showInGraph !== false ? 'checked' : ''} onchange="updateCheck(${i}, this.checked)"></td>
-                <td class="col-num">${p.num}</td>
-                <td class="col-from editable-cell" contenteditable="true" onblur="updateData(${i}, 'from', this.innerText)">${p.from || ''}</td>
-                <td class="editable-cell" contenteditable="true" onblur="updateData(${i}, 'title', this.innerText)">${p.title}</td>
-                <td><a href="${p.url}" target="_blank">OPEN</a></td>
-                <td class="editable-cell" contenteditable="true" onblur="updateData(${i}, 'desc', this.innerText)">${p.desc}</td>
-                <td><button class="delete-btn" onclick="deletePage(${i})">×</button></td>
-            `;
+            tr.innerHTML = `<td class="col-check"><input type="checkbox" ${p.showInGraph !== false ? 'checked' : ''} onchange="updateCheck(${i}, this.checked)"></td><td class="col-num">${p.num}</td><td class="col-from editable-cell" contenteditable="true" onblur="updateData(${i}, 'from', this.innerText)">${p.from || ''}</td><td class="editable-cell" contenteditable="true" onblur="updateData(${i}, 'title', this.innerText)">${p.title}</td><td><a href="${p.url}" target="_blank">OPEN</a></td><td class="editable-cell" contenteditable="true" onblur="updateData(${i}, 'desc', this.innerText)">${p.desc}</td><td><button class="delete-btn" onclick="deletePage(${i})">×</button></td>`;
             tbody.appendChild(tr);
         });
     }
-
     function updateCheck(i, val) { data[currentSite][i].showInGraph = val; save(); drawDiagram(); }
     function updateData(i, f, v) { if (currentSite) { data[currentSite][i][f] = v.trim(); save(); drawDiagram(); } }
     function deletePage(i) { if(confirm('消去？')) { data[currentSite].splice(i, 1); save(); renderPages(); drawDiagram(); } }
     function deleteCurrentSite() { if (confirm('全消去？')) { delete data[currentSite]; save(); currentSite = null; location.reload(); } }
-    function exportAll() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], {type:'application/json'})); a.download = 'NavigateU_v2_Backup.json'; a.click(); }
+    function exportAll() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], {type:'application/json'})); a.download = 'NavigateU_FullBackup.json'; a.click(); }
     function importData(e) { const r = new FileReader(); r.onload = (ev) => { data = {...data, ...JSON.parse(ev.target.result)}; save(); location.reload(); }; r.readAsText(e.target.files[0]); }
-
     renderSiteList();
 </script>
 </body>
