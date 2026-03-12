@@ -3,33 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Navigate-U v2.1.1</title>
+    <title>Navigate-U v2.2.0</title>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <style>
         :root {
+            /* ライトモード（デフォルト） */
             --primary: #2c3e50;
             --accent: #3498db;
             --bg: #f4f7f6;
             --white: #ffffff;
-            --text: #333;
+            --text: #333333;
             --edit-bg: #fff9c4;
             --success: #27ae60;
             --danger: #e74c3c;
             --border: #dcdde1;
+            --table-header: #f8f9fa;
+            --panel-bg: #eaedf0;
         }
-        body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+
+        /* ダークモード */
+        body.dark-mode {
+            --primary: #1a1a2e;
+            --accent: #0f3460;
+            --accent-light: #e94560;
+            --bg: #16213e;
+            --white: #1f2833;
+            --text: #c5c6c7;
+            --edit-bg: #2a364f;
+            --border: #45a29e;
+            --table-header: #0b0c10;
+            --panel-bg: #0b0c10;
+        }
+
+        body.dark-mode .btn-sub { background: #45a29e; color: #0b0c10; font-weight: bold; }
+        body.dark-mode .btn-action { background: #e94560; color: #fff; }
+        body.dark-mode .delete-btn { background: #c1292e; color: #fff; }
+        body.dark-mode input, body.dark-mode textarea { background: #0b0c10; color: #66fcf1; border-color: #45a29e; }
+        body.dark-mode a { color: #66fcf1; border-color: #66fcf1; }
+        body.dark-mode a:hover { background: #66fcf1; color: #0b0c10; }
+        body.dark-mode th { color: #66fcf1; }
+        body.dark-mode .col-num { color: #e94560; }
+        body.dark-mode .col-from { color: #45a29e; }
+
+        body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; transition: background-color 0.3s, color 0.3s; }
         
-        #sidebar { width: 280px; background: var(--primary); color: var(--white); padding: 20px; overflow-y: auto; flex-shrink: 0; border-right: 1px solid rgba(0,0,0,0.1); }
+        #sidebar { width: 280px; background: var(--primary); color: #fff; padding: 20px; overflow-y: auto; flex-shrink: 0; border-right: 1px solid rgba(0,0,0,0.1); transition: background-color 0.3s; }
         #main { flex-grow: 1; padding: 40px; overflow-y: auto; }
         
-        h3 { color: #fff; margin-top: 0; font-weight: 600; margin-bottom: 5px; }
-        .version-tag { font-family: 'Consolas', monospace; font-size: 0.7em; opacity: 0.5; margin-bottom: 20px; display: block; letter-spacing: 1px; }
+        h3 { color: inherit; margin-top: 0; font-weight: 600; margin-bottom: 5px; }
+        .version-tag { font-family: 'Consolas', monospace; font-size: 0.7em; opacity: 0.5; margin-bottom: 20px; display: block; letter-spacing: 1px; color: #fff; }
 
-        .site-item { cursor: pointer; padding: 12px; border-radius: 6px; margin-bottom: 8px; transition: 0.2s; background: rgba(255,255,255,0.05); border: 1px solid transparent; font-size: 0.9em; }
+        .site-item { cursor: pointer; padding: 12px; border-radius: 6px; margin-bottom: 8px; transition: 0.2s; background: rgba(255,255,255,0.05); border: 1px solid transparent; font-size: 0.9em; color: #fff; }
         .site-item:hover { background: rgba(255,255,255,0.15); }
         .site-item.active { background: var(--accent); font-weight: bold; border-color: rgba(255,255,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
 
-        input, textarea, button { padding: 10px; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 10px; box-sizing: border-box; font-family: inherit; transition: 0.2s; font-size: 16px; }
+        input, textarea, button { padding: 10px; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 10px; box-sizing: border-box; font-family: inherit; transition: 0.2s; font-size: 16px; background: var(--white); color: var(--text); }
         input:focus, textarea:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2); }
         textarea { resize: vertical; height: 70px; }
         
@@ -40,14 +68,20 @@
 
         #diagramArea { display: none; margin-top: 15px; }
         #diagramContainer { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 20px; overflow-x: auto; min-height: 250px; }
-        .diagram-header { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; background: #eaedf0; padding: 12px 20px; border-radius: 6px; border: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
+        .diagram-header { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; background: var(--panel-bg); padding: 12px 20px; border-radius: 6px; border: 1px solid var(--border); }
 
         .form-grid { display: grid; grid-template-columns: 100px 100px 1.5fr 2fr; gap: 15px; margin-bottom: 10px; }
         
-        .table-responsive { width: 100%; overflow-x: auto; margin-top: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-radius: 8px; background: var(--white); -webkit-overflow-scrolling: touch; }
+        /* アナライザーパネル */
+        .analyzer-panel { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; padding: 15px 20px; margin-top: 20px; font-family: 'Consolas', monospace; font-size: 0.9em; line-height: 1.5; }
+        .analyzer-panel span { font-weight: bold; color: var(--accent); }
+        body.dark-mode .analyzer-panel span { color: #e94560; }
+
+        .table-responsive { width: 100%; overflow-x: auto; margin-top: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-radius: 8px; background: var(--white); -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; min-width: 800px; table-layout: fixed; }
-        th, td { border-bottom: 1px solid #f1f2f6; padding: 14px; text-align: left; vertical-align: middle; }
-        th { background: #f8f9fa; font-weight: bold; color: var(--primary); font-size: 0.85em; text-transform: uppercase; }
+        th, td { border-bottom: 1px solid var(--border); padding: 14px; text-align: left; vertical-align: middle; }
+        th { background: var(--table-header); font-weight: bold; color: var(--primary); font-size: 0.85em; text-transform: uppercase; cursor: pointer; user-select: none; transition: background 0.2s; }
+        th:hover { filter: brightness(0.95); }
         
         .col-num { font-family: 'Consolas', monospace; text-align: center; font-weight: bold; color: var(--accent); width: 80px; word-break: break-all; }
         .col-from { font-family: 'Consolas', monospace; text-align: center; width: 80px; color: #7f8c8d; word-break: break-all; }
@@ -57,24 +91,24 @@
         .editable-cell:hover { background: var(--edit-bg); cursor: text; }
         a { color: var(--accent); text-decoration: none; font-size: 0.85em; font-weight: bold; border: 1px solid var(--accent); padding: 6px 10px; border-radius: 4px; display: inline-block; }
 
-        .search-container { margin: 25px 0 10px 0; display: flex; align-items: center; gap: 12px; background: #fff; padding: 10px 15px; border-radius: 6px; border: 1px solid var(--border); }
+        .search-container { margin: 25px 0 10px 0; display: flex; align-items: center; gap: 12px; background: var(--white); padding: 10px 15px; border-radius: 6px; border: 1px solid var(--border); }
+        #searchBox { margin-bottom: 0; flex-grow: 1; border: none; font-size: 15px; background: transparent; }
+
         .backup-section { margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
         #fileInput { display: none; }
         input[type="checkbox"] { transform: scale(1.3); cursor: pointer; margin: 0; }
 
-        /* ======== スマホ向けレイアウト (UI Hotfix) ======== */
+        /* スマホ向けレイアウト */
         @media screen and (max-width: 768px) {
             body { flex-direction: column; overflow: auto; }
             #sidebar { width: 100%; max-height: none; height: auto; border-right: none; border-bottom: 2px solid var(--accent); padding: 15px; box-sizing: border-box; }
             #main { padding: 15px; overflow-y: visible; }
             
-            /* サイト一覧を横スクロールのタブ風に変更 */
             #siteList { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 10px; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
             .site-item { margin-bottom: 0; white-space: nowrap; flex-shrink: 0; padding: 10px 15px; }
             
-            /* バックアップボタンを横並びに配置して省スペース化 */
-            .backup-section { margin-top: 0; padding-top: 0; border-top: none; display: flex; gap: 10px; }
-            .backup-section .btn-sub { margin-top: 0 !important; flex: 1; padding: 10px; }
+            .backup-section { margin-top: 0; padding-top: 0; border-top: none; display: flex; gap: 10px; flex-wrap: wrap; }
+            .backup-section .btn-sub { margin-top: 0 !important; flex: 1; padding: 10px; min-width: 120px; }
             
             .form-grid { grid-template-columns: 1fr; gap: 8px; }
             .form-grid input { text-align: left; }
@@ -89,11 +123,11 @@
 <body>
 
 <div id="sidebar">
-    <h3>Navigate-U</h3>
-    <span class="version-tag">VER 2.1.1 / UI HOTFIX</span>
+    <h3 style="color: #fff;">Navigate-U</h3>
+    <span class="version-tag">VER 2.2.0 / ANALYZER</span>
     
     <div style="margin-bottom: 15px;">
-        <input type="text" id="newSiteName" placeholder="新規サイト名...">
+        <input type="text" id="newSiteName" placeholder="新規サイト名..." style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
         <button onclick="addSite()" style="width:100%; background: var(--accent);">サイト登録</button>
     </div>
     
@@ -102,6 +136,7 @@
     <div class="backup-section">
         <button class="btn-sub" onclick="exportAll()">全データ出力</button>
         <button class="btn-sub" onclick="document.getElementById('fileInput').click()">JSON復元</button>
+        <button class="btn-action" onclick="toggleDarkMode()" style="flex-basis: 100%;">🌗 ダークモード切替</button>
         <input type="file" id="fileInput" accept=".json" onchange="importData(event)">
     </div>
 </div>
@@ -112,9 +147,9 @@
             <h2 id="currentSiteTitle" style="color: var(--primary); margin: 0;">TARGET_LOCKED</h2>
             <button class="btn-sub" style="background: var(--success); margin: 0;" onclick="exportCurrentSite()">サイト出力</button>
         </div>
-        <div style="background: #fff; padding: 20px; border-radius: 8px; border: 1px solid var(--border);">
+        <div style="background: var(--white); padding: 20px; border-radius: 8px; border: 1px solid var(--border);">
             <div class="form-grid">
-                <input type="text" id="pageNum" placeholder="ID (例: 1, 8-A)">
+                <input type="text" id="pageNum" placeholder="ID (例: 1, EX1)">
                 <input type="text" id="fromNum" placeholder="From (遷移元)">
                 <input type="text" id="pageTitle" placeholder="タイトル">
                 <input type="text" id="pageUrl" placeholder="URL">
@@ -122,6 +157,7 @@
             <textarea id="pageDesc" placeholder="メモ..."></textarea>
             <button onclick="addPage()" style="width: 100%; padding: 12px;">追加</button>
         </div>
+        
         <div class="diagram-header">
             <h3 style="margin: 0; font-size: 0.9em; color: var(--primary);">RELATIONSHIP MAP</h3>
             <div>
@@ -133,11 +169,27 @@
             </div>
         </div>
         <div id="diagramArea"><div id="diagramContainer"><div id="mermaidGraph" class="mermaid"></div></div></div>
+        
         <div class="search-container"><input type="text" id="searchBox" placeholder="検索..." oninput="renderPages()"></div>
+        
+        <div id="analyzerPanel" class="analyzer-panel" style="display: none;">
+            <div>登録総数: <span id="statTotal">0</span> 件</div>
+            <div style="margin-top: 5px;">検知された欠番 (Missing IDs): <br><span id="statMissing" style="word-break: break-all;">なし</span></div>
+        </div>
         
         <div class="table-responsive">
             <table>
-                <thead><tr><th class="col-check">図</th><th class="col-num">ID</th><th class="col-from">From</th><th style="width: 25%;">タイトル</th><th style="width: 80px;">Link</th><th>メモ</th><th style="width: 50px;">消去</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th class="col-check">図</th>
+                        <th class="col-num" onclick="sortData('num')">ID ↕</th>
+                        <th class="col-from" onclick="sortData('from')">From ↕</th>
+                        <th style="width: 25%;" onclick="sortData('title')">タイトル ↕</th>
+                        <th style="width: 80px;">Link</th>
+                        <th>メモ</th>
+                        <th style="width: 50px;">消去</th>
+                    </tr>
+                </thead>
                 <tbody id="pageListBody"></tbody>
             </table>
         </div>
@@ -151,6 +203,7 @@
     mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'neutral', flowchart: { nodeSpacing: 100, rankSpacing: 80, curve: 'basis' }});
 
     const STORAGE_KEY = 'NavigateU_PersistentData';
+    const THEME_KEY = 'NavigateU_Theme';
     const OLD_KEYS = ['argDataV_UNIVERSAL', 'argDataV_SELECTIVE', 'argDataV_FINAL', 'argDataV_SEARCH'];
     
     let data = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -164,8 +217,20 @@
 
     let currentSite = null;
     let graphDir = 'TD'; 
+    let sortCol = 'num';
+    let sortAsc = true;
 
-    function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); renderSiteList(); }
+    // ダークモードの復元
+    if (localStorage.getItem(THEME_KEY) === 'dark') {
+        document.body.classList.add('dark-mode');
+    }
+
+    function toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+        localStorage.setItem(THEME_KEY, document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+    }
+
+    function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); renderSiteList(); updateAnalyzer(); }
 
     function downloadJSON(obj, filename) {
         const blob = new Blob([JSON.stringify(obj, null, 2)], {type: 'application/json'});
@@ -205,17 +270,81 @@
 
     function addSite() { const name = document.getElementById('newSiteName').value.trim(); if (name && !data[name]) { data[name] = []; save(); selectSite(name); document.getElementById('newSiteName').value = ''; } }
     function renderSiteList() { const list = document.getElementById('siteList'); list.innerHTML = ''; Object.keys(data).forEach(name => { const div = document.createElement('div'); div.className = `site-item ${name === currentSite ? 'active' : ''}`; div.textContent = `> ${name}`; div.onclick = () => selectSite(name); list.appendChild(div); }); }
-    function selectSite(name) { currentSite = name; document.getElementById('viewArea').style.display = 'block'; document.getElementById('emptyMessage').style.display = 'none'; document.getElementById('currentSiteTitle').textContent = `[TARGET] ${name}`; renderSiteList(); renderPages(); drawDiagram(); }
+    
+    function selectSite(name) { 
+        currentSite = name; 
+        document.getElementById('viewArea').style.display = 'block'; 
+        document.getElementById('emptyMessage').style.display = 'none'; 
+        document.getElementById('currentSiteTitle').textContent = `[TARGET] ${name}`; 
+        renderSiteList(); 
+        sortData('num', true); // デフォルトはID昇順
+        drawDiagram(); 
+        updateAnalyzer();
+    }
+
+    function updateAnalyzer() {
+        if (!currentSite || !data[currentSite]) {
+            document.getElementById('analyzerPanel').style.display = 'none';
+            return;
+        }
+        document.getElementById('analyzerPanel').style.display = 'block';
+        document.getElementById('statTotal').textContent = data[currentSite].length;
+
+        // 数値のIDのみを抽出して欠番を計算
+        let nums = [];
+        data[currentSite].forEach(p => {
+            let n = parseInt(p.num);
+            if (!isNaN(n) && n > 0 && p.num.toString() === n.toString()) {
+                nums.push(n);
+            }
+        });
+
+        if (nums.length === 0) {
+            document.getElementById('statMissing').textContent = '解析可能な整数IDがありません';
+            return;
+        }
+
+        let max = Math.max(...nums);
+        let min = Math.min(...nums);
+        let missing = [];
+        for (let i = min; i < max; i++) {
+            if (!nums.includes(i)) missing.push(i);
+        }
+
+        document.getElementById('statMissing').textContent = missing.length > 0 ? missing.join(', ') : '欠落データなし (NORMAL)';
+    }
+
+    function sortData(col, forceAsc = false) {
+        if (!currentSite) return;
+        if (forceAsc) {
+            sortCol = col; sortAsc = true;
+        } else {
+            if (sortCol === col) sortAsc = !sortAsc;
+            else { sortCol = col; sortAsc = true; }
+        }
+
+        data[currentSite].sort((a, b) => {
+            let valA = a[col] || '';
+            let valB = b[col] || '';
+            let cmp = valA.toString().localeCompare(valB.toString(), undefined, {numeric: true});
+            return sortAsc ? cmp : -cmp;
+        });
+        save();
+        renderPages();
+    }
+
     function addPage() {
         const numIn = document.getElementById('pageNum').value.trim();
         const url = document.getElementById('pageUrl').value.trim();
         if (!currentSite || !numIn || !url) return alert('IDとURLは必須');
         if (data[currentSite].some(p => p.num.toString() === numIn)) return alert('ID重複');
         data[currentSite].push({ num: numIn, from: document.getElementById('fromNum').value.trim(), title: document.getElementById('pageTitle').value.trim() || '(無題)', url: url, desc: document.getElementById('pageDesc').value.trim() || '-', showInGraph: true });
-        data[currentSite].sort((a, b) => a.num.toString().localeCompare(b.num.toString(), undefined, {numeric: true}));
+        
+        sortData('num', true);
         ['pageNum', 'fromNum', 'pageTitle', 'pageUrl', 'pageDesc'].forEach(id => document.getElementById(id).value = '');
-        save(); renderPages(); drawDiagram();
+        drawDiagram();
     }
+
     function renderPages() {
         const tbody = document.getElementById('pageListBody');
         tbody.innerHTML = ''; if (!currentSite) return;
@@ -227,6 +356,7 @@
             tbody.appendChild(tr);
         });
     }
+
     function updateCheck(i, val) { data[currentSite][i].showInGraph = val; save(); drawDiagram(); }
     function updateData(i, f, v) { if (currentSite) { data[currentSite][i][f] = v.trim(); save(); drawDiagram(); } }
     function deletePage(i) { if(confirm('消去？')) { data[currentSite].splice(i, 1); save(); renderPages(); drawDiagram(); } }
